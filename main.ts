@@ -67,8 +67,8 @@ namespace weatherSensors {
     //% group="Sensors"
     export function readHumidity(): number {
         initAHT20();
-        let buffer = pins.i2cReadBuffer(AHT20_I2C_ADDR, 6, false);
-        let humidity = ((buffer[1] & 0xFF) << 8 | (buffer[2] & 0xFF)) * 0.0244;
+        let buffer2 = pins.i2cReadBuffer(AHT20_I2C_ADDR, 6, false);
+        let humidity = ((buffer2[1] & 0xFF) << 8 | (buffer2[2] & 0xFF)) * 0.0244;
         return humidity;
     }
 
@@ -80,8 +80,8 @@ namespace weatherSensors {
     //% group="Sensors"
     export function readPressure(): number {
         initBMP280();
-        let buffer = pins.i2cReadBuffer(BMP280_I2C_ADDR, 3, false);
-        let pressure = ((buffer[0] & 0xFF) << 12 | (buffer[1] & 0xFF) << 4 | (buffer[2] & 0xFF) >> 4);
+        let buffer3 = pins.i2cReadBuffer(BMP280_I2C_ADDR, 3, false);
+        let pressure = ((buffer3[0] & 0xFF) << 12 | (buffer3[1] & 0xFF) << 4 | (buffer3[2] & 0xFF) >> 4);
         return pressure;
     }
 
@@ -92,8 +92,8 @@ namespace weatherSensors {
     //% weight=75
     //% group="Calculations"
     export function calculateAltitude(): number {
-        let pressure = readPressure();
-        let altitude = 44330 * (1 - Math.pow(pressure / seaLevelhPa, 0.1903));
+        let pressure2 = readPressure();
+        let altitude = 44330 * (1 - Math.pow(pressure2 / seaLevelhPa, 0.1903));
         return altitude;
     }
 }
