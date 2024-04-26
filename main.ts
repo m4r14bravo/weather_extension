@@ -123,41 +123,51 @@ namespace environmentalSensors {
 
     //% blockId="AHT20_INIT" block="initialize AHT20"
     function initializeAHT20(): boolean {
-        pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xE1, NumberFormat.UInt8BE); // Calibration command
+        pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xE1, NumberFormat.UInt8BE); // Comando de activación
+        basic.pause(20); // Espera para que el sensor pueda procesar el comando
+
         let calibrationData = pins.i2cReadNumber(AHT20_I2C_ADDR, NumberFormat.UInt8BE, true);
-        if ((calibrationData & 0x08) === 0) { // Verificar si el bit de calibración está activo
-            pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xBE, NumberFormat.UInt8BE); // Comando de inicialización
-            basic.pause(10);
-            return true; // Calibración correcta
+        serial.writeValue("calibData", calibrationData);
+
+        if ((calibrationData & 0x08) === 0) { // Verifica si el bit de calibración está activo
+            pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xBE, NumberFormat.UInt8BE); // Comando de calibración
+            basic.pause(10); // Espera para procesar la calibración
+            calibrationData = pins.i2cReadNumber(AHT20_I2C_ADDR, NumberFormat.UInt8BE, true); // Relee el estado
+            if ((calibrationData & 0x08) === 0) { // Verifica de nuevo el bit de calibración
+                return false; // La calibración falló
+            }
         }
-        return false; // Fallo en calibración
+        return true; // El sensor está calibrado y listo
     }
 
     //% blockId="AHT20_GET_TEMPERATURE" block="get AHT temperature"
     export function getTemperatureAHT(): number {
         if (!initializeAHT20()) {
-            return -999; // Retorna un código de error si la inicialización falla
+            return -999; // Si la inicialización falla, retorna un error
         }
-        pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xAC, NumberFormat.UInt8BE); // Trigger measurement
-        basic.pause(80); // Wait for measurement to complete
-        let raw = pins.i2cReadBuffer(AHT20_I2C_ADDR, 6);
+        pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xAC, NumberFormat.UInt8BE); // Comando para medir
+        basic.pause(80); // Espera suficiente para completar la medición
+
+        let raw = pins.i2cReadBuffer(AHT20_I2C_ADDR, 6); // Lee el buffer de datos
         let rawTemp = (raw[3] & 0x0F) << 16 | raw[4] << 8 | raw[5];
-        let temperature = ((rawTemp * 200.0) / 1048576.0) - 50.0; // Convert to Celsius
+        let temperature = ((rawTemp * 200.0) / 1048576.0) - 50.0; // Calcula la temperatura
         return temperature;
     }
 
     //% blockId="AHT20_GET_HUMIDITY" block="get humidity"
     export function getHumidity(): number {
         if (!initializeAHT20()) {
-            return -999; // Retorna un código de error si la inicialización falla
+            return -999; // Si la inicialización falla, retorna un error
         }
-        pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xAC, NumberFormat.UInt8BE); // Trigger measurement
-        basic.pause(80); // Wait for measurement to complete
-        let raw = pins.i2cReadBuffer(AHT20_I2C_ADDR, 6);
+        pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xAC, NumberFormat.UInt8BE); // Comando para medir
+        basic.pause(80); // Espera suficiente para completar la medición
+
+        let raw = pins.i2cReadBuffer(AHT20_I2C_ADDR, 6); // Lee el buffer de datos
         let rawHumidity = (raw[1] << 12) | (raw[2] << 4) | (raw[3] >> 4);
-        let humidity = (rawHumidity * 100.0) / 1048576.0; // Convert to relative humidity percentage
+        let humidity = (rawHumidity * 100.0) / 1048576.0; // Calcula la humedad
         return humidity;
     }
+
 
 
     //% blockId="BMP280_POWER_ON" block="Power On BMP280"
