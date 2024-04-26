@@ -123,18 +123,17 @@ namespace environmentalSensors {
     // AHT20 functions
 
 
-    //% blockId="AHT20_INIT" block="initialize AHT20"
     function initializeAHT20(): boolean {
         pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xE1, NumberFormat.UInt8BE); // Wake-up command
-        basic.pause(20);
+        basic.pause(50); // Increased time for sensor stabilization
         let calibrationData = pins.i2cReadNumber(AHT20_I2C_ADDR, NumberFormat.UInt8BE, true);
         serial.writeValue("Init calibData", calibrationData);
 
         if ((calibrationData & 0x08) !== 0x08) {
             pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xBE, NumberFormat.UInt8BE); // Calibration command
-            basic.pause(10);
+            basic.pause(50); // Increased time for calibration to settle
             calibrationData = pins.i2cReadNumber(AHT20_I2C_ADDR, NumberFormat.UInt8BE, true);
-            serial.writeValue("Retry calibData", calibrationData);
+            serial.writeValue("Post-Calibration Status", calibrationData);
 
             if ((calibrationData & 0x08) !== 0x08) {
                 return false; // Calibration failed
