@@ -86,7 +86,9 @@ namespace environmentalSensors {
         var2 = ((p / 4) * bmp280_calib_P8) / 8192;
         p = p + ((var1 + var2 + bmp280_calib_P7) / 16);
 
-        return p / 100; // Convert to hPa
+        // Adjust for two decimals without toFixed
+        p = Math.round((p / 100) * 100) / 100; // Convert to hPa and adjust to two decimal places
+        return p;
     }
 
     function calculateBMP280TemperatureFine(): number {
