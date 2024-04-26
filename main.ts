@@ -125,22 +125,25 @@ namespace environmentalSensors {
 
     //% blockId="AHT20_INIT" block="initialize AHT20"
     function initializeAHT20(): boolean {
-        pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xE1, NumberFormat.UInt8BE); // Comando de activación
-        basic.pause(20); // Espera para que el sensor pueda procesar el comando
-
+        pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xE1, NumberFormat.UInt8BE); // Wake-up command
+        basic.pause(20);
         let calibrationData = pins.i2cReadNumber(AHT20_I2C_ADDR, NumberFormat.UInt8BE, true);
-        serial.writeValue("calibData", calibrationData);
+        serial.writeValue("Init calibData", calibrationData);
 
-        if ((calibrationData & 0x08) === 0) { // Verifica si el bit de calibración está activo
-            pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xBE, NumberFormat.UInt8BE); // Comando de calibración
-            basic.pause(10); // Espera para procesar la calibración
-            calibrationData = pins.i2cReadNumber(AHT20_I2C_ADDR, NumberFormat.UInt8BE, true); // Relee el estado
-            if ((calibrationData & 0x08) === 0) { // Verifica de nuevo el bit de calibración
-                return false; // La calibración falló
+        if ((calibrationData & 0x08) !== 0x08) {
+            pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xBE, NumberFormat.UInt8BE); // Calibration command
+            basic.pause(10);
+            calibrationData = pins.i2cReadNumber(AHT20_I2C_ADDR, NumberFormat.UInt8BE, true);
+            serial.writeValue("Retry calibData", calibrationData);
+
+            if ((calibrationData & 0x08) !== 0x08) {
+                return false; // Calibration failed
             }
         }
-        return true; // El sensor está calibrado y listo
+        return true; // Calibration succeeded
     }
+
+
 
     //% blockId="AHT20_GET_TEMPERATURE" block="get AHT temperature"
     export function getTemperatureAHT(): number {
