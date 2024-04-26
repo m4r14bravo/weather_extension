@@ -123,27 +123,34 @@ namespace environmentalSensors {
     // AHT20 functions
     //% blockId="AHT20_INIT" block="initialize AHT20"
     function initializeAHT20(): boolean {
-        // Enviar comando de activación para despertar al sensor
-        pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xE1, NumberFormat.UInt8BE);
-        basic.pause(50); // Espera para procesar el comando de activación
+        // Dirección I2C del AHT20
+        const AHT20_I2C_ADDR = 0x38;
+
+        // Comando de inicialización con calibración activa
+        const initCmd = [0xBE, 0x08, 0x00];
+
+        // Enviar comando de inicialización para despertar y calibrar el sensor
+        pins.i2cWriteBuffer(AHT20_I2C_ADDR, Buffer.fromArray(initCmd));
+        basic.pause(10); // Espera breve después del envío del comando
 
         // Leer y verificar el estado de calibración
-        let calibrationData = pins.i2cReadNumber(AHT20_I2C_ADDR, NumberFormat.UInt8BE, true);
-        serial.writeValue("Init calibData", calibrationData);
+        let status = pins.i2cReadNumber(AHT20_I2C_ADDR, NumberFormat.UInt8BE, true);
+        serial.writeValue("Init status", status);
 
-        if ((calibrationData & 0x08) === 0) {  // Verificar si el bit de calibración está activo
-            // Si no está calibrado, enviar comando de calibración
-            pins.i2cWriteNumber(AHT20_I2C_ADDR, 0xAC, NumberFormat.UInt8BE); // Comando correcto para la calibración
-            basic.pause(100); // Tiempo de espera aumentado para la calibración
-            // Revisar el estado de nuevo
-            calibrationData = pins.i2cReadNumber(AHT20_I2C_ADDR, NumberFormat.UInt8BE, true);
-            serial.writeValue("Retry calibData", calibrationData);
-            if ((calibrationData & 0x08) === 0) {
+        // Verificar si el bit de calibración (bit 3) está activo
+        if ((status & 0x68) !== 0x18) {  // 0x68 incluye el bit de modo ocupado (0x80 >> 4)
+            basic.pause(300); // Espera más larga para permitir que la calibración termine
+            status = pins.i2cReadNumber(AHT20_I2C_ADDR, NumberFormat.UInt8BE, true);
+            serial.writeValue("Retry status", status);
+
+            // Revisar de nuevo el estado de calibración
+            if ((status & 0x68) !== 0x18) {
                 return false; // Falló la calibración
             }
         }
         return true; // Sensor calibrado correctamente
     }
+
 
 
 
