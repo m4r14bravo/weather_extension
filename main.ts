@@ -113,6 +113,12 @@ namespace environmentalSensors {
         return T / 100; // Convert to degrees Celsius
     }
 
+    //% blockId="BMP280_CALCULATE_ALTITUDE" block="estimate altitude with pressure %pressure"
+    export function estimateAltitude(pressure: number): number {
+        const seaLevelPressure = 1013.25; // Standard sea-level pressure in hPa
+        return 44330 * (1 - Math.pow(pressure / seaLevelPressure, 0.1903));
+    }
+
     //% blockId="AHT20_GET_TEMPERATURE" block="get AHT temperature"
     export function getTemperatureAHT(): number {
         if (!initializeAHT20()) {
