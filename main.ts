@@ -122,7 +122,8 @@ namespace environmentalSensors {
 
     // AHT20 functions
 
-    function initializeAHT20(): boolean {
+    //% blockId="initialize_AHT20" block="initialize AHT20"
+    export function initializeAHT20(): boolean {
         const AHT20_I2C_ADDR = 0x38;
         let buffer = pins.createBuffer(1);
 
@@ -214,10 +215,6 @@ namespace environmentalSensors {
 
         return humidity;
     }
-
-
-
-
 
     //% blockId="BMP280_POWER_ON" block="Power On BMP280"
     export function powerOnBMP280(): void {
