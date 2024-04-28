@@ -162,30 +162,59 @@ namespace environmentalSensors {
     }
 
 
-    //% blockId="read_temperature_humidity" block="read temperature and humidity from AHT20"
-    export function readTemperatureAndHumidity(): { temperature: number, humidity: number } {
+    //% blockId="read_temperature_from_AHT20" block="read temperature from AHT20"
+    export function readTemperatureAHT20(): number {
         if (!initializeAHT20()) {
-            return { temperature: null, humidity: null }; // Retorna null si la inicialización falla
+            return null; // Retorna null si la inicialización falla
         }
+
         let buffer = pins.createBuffer(3);
         buffer[0] = 0xAC; // AHTX0_CMD_TRIGGER
         buffer[1] = 0x33;
         buffer[2] = 0x00;
-        pins.i2cWriteBuffer(0x38, buffer);
+        pins.i2cWriteBuffer(AHT20_I2C_ADDR, buffer);
 
         // Esperar mientras el sensor está ocupado
-        while ((getStatus() & 0x80) !== 0) { // AHTX0_STATUS_BUSY
+        while ((getStatus() & 0x80) !== 0) {
             basic.pause(10);
         }
 
-        // Leer los datos del sensor
-        let data = pins.i2cReadBuffer(0x38, 6);
-        let humidity = ((data[1] << 12) | (data[2] << 4) | (data[3] >> 4)) * 100 / 0x100000;
+        let data = pins.i2cReadBuffer(AHT20_I2C_ADDR, 6);
+        if (data.length !== 6) {
+            return null; // Retorna null si la lectura falla
+        }
         let tempRaw = ((data[3] & 0x0F) << 16) | (data[4] << 8) | data[5];
         let temperature = (tempRaw * 200.0 / 0x100000) - 50;
 
-        return { temperature, humidity };
+        return temperature;
     }
+
+    //% blockId="read_humidity_from_AHT20" block="read humidity from AHT20"
+    export function readHumidityAHT20(): number {
+        if (!initializeAHT20()) {
+            return null; // Retorna null si la inicialización falla
+        }
+
+        let buffer = pins.createBuffer(3);
+        buffer[0] = 0xAC; // AHTX0_CMD_TRIGGER
+        buffer[1] = 0x33;
+        buffer[2] = 0x00;
+        pins.i2cWriteBuffer(AHT20_I2C_ADDR, buffer);
+
+        // Esperar mientras el sensor está ocupado
+        while ((getStatus() & 0x80) !== 0) {
+            basic.pause(10);
+        }
+
+        let data = pins.i2cReadBuffer(AHT20_I2C_ADDR, 6);
+        if (data.length !== 6) {
+            return null; // Retorna null si la lectura falla
+        }
+        let humidity = ((data[1] << 12) | (data[2] << 4) | (data[3] >> 4)) * 100 / 0x100000;
+
+        return humidity;
+    }
+
 
 
 
