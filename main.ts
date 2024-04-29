@@ -11,7 +11,7 @@ enum BMP280_I2C_ADDRESS {
 }
 
 //% weight=100 color=#5045f6 icon="\uf2c9" block="Environmental Sensors"
-namespace environmentalSensors {
+namespace SensorBMP280{
     let BMP280_I2C_ADDR = BMP280_I2C_ADDRESS.ADDR_0x77; // Default to 0x77
     let AHT20_I2C_ADDR = 0x38; // Standard I2C address for AHT20
 
@@ -120,102 +120,6 @@ namespace environmentalSensors {
     }
 
 
-    // AHT20 functions
-
-    //% blockId="initialize_AHT20" block="initialize AHT20"
-    export function initializeAHT20(): boolean {
-        const AHT20_I2C_ADDR = 0x38;
-        let buffer = pins.createBuffer(1);
-
-        // Soft reset
-        buffer[0] = 0xBA; // AHTX0_CMD_SOFTRESET
-        pins.i2cWriteBuffer(AHT20_I2C_ADDR, buffer);
-        basic.pause(20);
-
-        // Check if sensor is busy and wait until it is ready
-        while ((getStatus() & 0x80) !== 0) { // AHTX0_STATUS_BUSY
-            basic.pause(10);
-        }
-
-        // Send calibration command
-        buffer = pins.createBuffer(3);
-        buffer[0] = 0xE1; // AHTX0_CMD_CALIBRATE
-        buffer[1] = 0x08;
-        buffer[2] = 0x00;
-        pins.i2cWriteBuffer(AHT20_I2C_ADDR, buffer);
-
-        // Wait for calibration to complete
-        while ((getStatus() & 0x80) !== 0) { // AHTX0_STATUS_BUSY
-            basic.pause(10);
-        }
-
-        // Check if calibrated
-        if ((getStatus() & 0x08) !== 0x08) { // AHTX0_STATUS_CALIBRATED
-            return false;
-        }
-
-        return true;
-    }
-
-    function getStatus(): number {
-        let status = pins.i2cReadNumber(0x38, NumberFormat.UInt8BE, true);
-        return status;
-    }
-
-
-    //% blockId="read_temperature_from_AHT20" block="read temperature from AHT20"
-    export function readTemperatureAHT20(): number {
-        if (!initializeAHT20()) {
-            return null; // Retorna null si la inicialización falla
-        }
-
-        let buffer = pins.createBuffer(3);
-        buffer[0] = 0xAC; // AHTX0_CMD_TRIGGER
-        buffer[1] = 0x33;
-        buffer[2] = 0x00;
-        pins.i2cWriteBuffer(AHT20_I2C_ADDR, buffer);
-
-        // Esperar mientras el sensor está ocupado
-        while ((getStatus() & 0x80) !== 0) {
-            basic.pause(10);
-        }
-
-        let data = pins.i2cReadBuffer(AHT20_I2C_ADDR, 6);
-        if (data.length !== 6) {
-            return null; // Retorna null si la lectura falla
-        }
-        let tempRaw = ((data[3] & 0x0F) << 16) | (data[4] << 8) | data[5];
-        let temperature = (tempRaw * 200.0 / 0x100000) - 50;
-
-        return temperature;
-    }
-
-    //% blockId="read_humidity_from_AHT20" block="read humidity from AHT20"
-    export function readHumidityAHT20(): number {
-        if (!initializeAHT20()) {
-            return null; // Retorna null si la inicialización falla
-        }
-
-        let buffer = pins.createBuffer(3);
-        buffer[0] = 0xAC; // AHTX0_CMD_TRIGGER
-        buffer[1] = 0x33;
-        buffer[2] = 0x00;
-        pins.i2cWriteBuffer(AHT20_I2C_ADDR, buffer);
-
-        // Esperar mientras el sensor está ocupado
-        while ((getStatus() & 0x80) !== 0) {
-            basic.pause(10);
-        }
-
-        let data = pins.i2cReadBuffer(AHT20_I2C_ADDR, 6);
-        if (data.length !== 6) {
-            return null; // Retorna null si la lectura falla
-        }
-        let humidity = ((data[1] << 12) | (data[2] << 4) | (data[3] >> 4)) * 100 / 0x100000;
-
-        return humidity;
-    }
-
     //% blockId="BMP280_POWER_ON" block="Power On BMP280"
     export function powerOnBMP280(): void {
         writeBMP280Reg(0xF4, 0x2F); // Configuration for normal mode
@@ -225,5 +129,62 @@ namespace environmentalSensors {
     //% blockId="BMP280_POWER_OFF" block="Power Off BMP280"
     export function powerOffBMP280(): void {
         writeBMP280Reg(0xF4, 0x00); // Put the sensor in sleep mode
+    }
+}
+
+// AHT20 functions
+
+//% weight=100 color=#0fbc11 icon=""
+namespace SensorAHT20 {
+
+    let isInitialized = false;
+
+    //% block="inicializar AHT20"
+    export function initializeAHT20(): void {
+        if (!isInitialized) {
+            pins.i2cWriteNumber(0x38, 0xBA, NumberFormat.UInt8LE); // Soft reset
+            basic.pause(20);
+
+            let cmd = pins.createBuffer(3);
+            cmd[0] = 0xE1; // Calibrate command
+            cmd[1] = 0x08;
+            cmd[2] = 0x00;
+            pins.i2cWriteBuffer(0x38, cmd);
+            basic.pause(20);
+
+            isInitialized = true;
+        }
+    }
+
+    //% block="leer temperatura de AHT20"
+    export function readTemperature(): number {
+        if (!isInitialized) {
+            initializeAHT20();
+        }
+
+        pins.i2cWriteNumber(0x38, 0xAC, NumberFormat.UInt8LE, true); // Trigger reading
+        basic.pause(10);
+
+        let data = pins.i2cReadBuffer(0x38, 6);
+        let rawTemperature = (data[3] & 0x0F) << 16 | data[4] << 8 | data[5];
+        let temperature = ((rawTemperature * 200.0) / 1048576.0) - 50.0;
+
+        return temperature;
+    }
+
+    //% block="leer humedad de AHT20"
+    export function readHumidity(): number {
+        if (!isInitialized) {
+            initializeAHT20();
+        }
+
+        pins.i2cWriteNumber(0x38, 0xAC, NumberFormat.UInt8LE, true); // Trigger reading
+        basic.pause(10);
+
+        let data = pins.i2cReadBuffer(0x38, 6);
+        let rawHumidity = (data[1] << 16 | data[2] << 8 | data[3] >> 4);
+        let humidity = (rawHumidity * 100.0) / 1048576.0;
+
+        return humidity;
     }
 }
