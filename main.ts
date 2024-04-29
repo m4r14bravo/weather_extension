@@ -11,7 +11,7 @@ enum BMP280_I2C_ADDRESS {
 }
 
 //% weight=100 color=#5045f6 icon="\uf2c9" block="Environmental Sensors"
-namespace SensorBMP280{
+namespace SensorBMP280 {
     let BMP280_I2C_ADDR = BMP280_I2C_ADDRESS.ADDR_0x77; // Default to 0x77
     let AHT20_I2C_ADDR = 0x38; // Standard I2C address for AHT20
 
